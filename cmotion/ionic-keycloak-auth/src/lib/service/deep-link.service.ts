@@ -7,7 +7,7 @@ import {Subject} from 'rxjs';
 import {filter} from 'rxjs/operators';
 import {DeeplinkMatch, Deeplinks} from '@ionic-native/deeplinks/ngx';
 import {KeyValueStr} from '../model';
-import {NavController} from '@ionic/angular';
+import {NavController, Platform} from '@ionic/angular';
 
 @Injectable()
 export class DeepLinkService {
@@ -15,29 +15,35 @@ export class DeepLinkService {
   private paramsSubject = new Subject<string>();
 
   constructor(private navController: NavController,
-              private deepLinks: Deeplinks) {
+              private deepLinks: Deeplinks,
+              private platform: Platform) {
   }
 
   params() {
     return this.paramsSubject
       .pipe(filter(str => !!str));
   }
-
+  
   init() {
-    this.deepLinks
-      .route({})
-      .subscribe(
-        (match: DeeplinkMatch) => {
-          // match.$route - the route we matched, which is the matched entry from the arguments to route()
-          // match.$args - the args passed in the link
-          // match.$link - the full link data
-          this.extractData(match.$link);
-        },
-        nomatch => {
-          // nomatch.$link - the full link data
-          this.extractData(nomatch.$link);
-        }
-      );
+    this.platform.ready().then(() => {
+      if (window['cordova']) {
+        const dl = window['IonicDeeplink'];
+        dl.route(
+            {
+            },
+            (match) => {
+              // match.$route - the route we matched, which is the matched entry from the arguments to route()
+              // match.$args - the args passed in the link
+              // match.$link - the full link data
+              this.extractData(match.$link);
+            },
+            (nomatch) => {
+              // nomatch.$link - the full link data
+              this.extractData(nomatch.$link);
+            }
+        );
+      }
+    });
   }
 
   private extractData($link) {
